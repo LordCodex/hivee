@@ -19,10 +19,10 @@ return new class extends Migration
             $table->string('user_id');
             $table->string('no_rooms');
             $table->string('room_type');
-            $table->string('hostel_features')->nullable();;
-            $table->text('img_one')->nullable();;
-            $table->text('img_two')->nullable();;
-            $table->text('img_three')->nullable();;
+            $table->string('hostel_features')->nullable();
+            $table->text('img_one')->nullable();
+            $table->text('img_two')->nullable();
+            $table->text('img_three')->nullable();
             $table->timestamps(); 
         });
     }

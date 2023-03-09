@@ -27,7 +27,9 @@ class User extends Authenticatable
         'business_name',
         'gender',
         'address',
-        'phone'
+        'phone',
+        'nimc_url',
+        'verification'
     ];
 
     /**

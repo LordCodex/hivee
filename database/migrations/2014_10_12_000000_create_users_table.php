@@ -19,11 +19,11 @@ return new class extends Migration
             $table->string('gender')->nullable();
             $table->string('address')->nullable();
             $table->text('img_url')->nullable();
-            $table->string('verified')->default('NO');
+            $table->text('nimc_url')->nullable();
+            $table->string('verification')->default('UNVERIFIED');
             $table->string('type')->default('FREE');
             $table->string('email')->unique();
             $table->string('password');
-            $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
        

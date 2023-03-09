@@ -68,10 +68,10 @@ class UserController extends Controller
         $user = User::where('email', $request->email)->first();
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response([
-                'message' => 'User not found',
+                'message' => 'Incorrect Email or Password ',
                 'status' => 'fail',
-                'statusCode' => '404'
-            ], 404);
+                'statusCode' => '401'
+            ], 401);
         }
 
         $token = $user->createToken('auth_token')->accessToken;
@@ -91,7 +91,7 @@ class UserController extends Controller
         if (auth()->user()) {
             $request->validate([
                 'name' => 'nullable|max:255',
-                'email' => 'required|email',
+                'email' => 'nullable|email',
                 'business_name' => 'nullable|max:255',
                 'gender' => 'nullable|max:10',
                 'address' => 'nullable|max:255',
@@ -109,13 +109,15 @@ class UserController extends Controller
             $user = $request->user();
             if ($request->hasFile('img_url')) {
                 if ($user->img_url) {
-                    $old_path = public_path() . 'uploads/agents/profile_images/' . $user->img_url;
+                    $old_path = $user->img_url;
                     if (File::exists($old_path)) {
                         File::delete($old_path);
                     }
                 }
-                $image_name = 'profile-image-' . time() . '.' . $request->img_url->extension();
+                $image_name = 'profile-image-' . time() . '-' . rand(1000, 9999) . '-' . $user->name . '-' . rand(1000, 9999) . time() . rand(1000, 9999) .  '.' . $request->img_url->extension();
+                $image_name = str_replace(' ', '-', $image_name);
                 $request->img_url->move(public_path('/uploads/agents/profile_images'), $image_name);
+                $image_name = url('uploads/agents/profile_images/' . $image_name);
             } else {
                 $image_name = $user->img_url;
             }
@@ -214,7 +216,7 @@ class UserController extends Controller
         }
         //GENERATE OTP AND TOKEN
         $otpcode = rand(1000, 9999);
-        $tokencode = rand(1000, 9999) . 'reset' . $otpcode . 'pass' . rand(1000, 9999);
+        $tokencode = rand(1000, 9999) . 'reset' . $otpcode . 'pass' . rand(1000, 9999). time();
 
         //CHECK IF EMAIL IS IN TOKEN TABLE BEFORE
 
@@ -250,12 +252,12 @@ class UserController extends Controller
                     'statusCode' => '401'
                 ], 401);
             }
-            // if ($token){
-            //     $mailData =[
-            //         "otp"=>$otpcode,
-            //     ];
-            //     Mail::to($request->email)->send(new ResetEmail($mailData));
-            // }
+            if ($token) {
+                $mailData = [
+                    "otp" => $otpcode,
+                ];
+                Mail::to($request->email)->send(new ResetEmail($mailData));
+            }
         }
         return response([
 
@@ -359,9 +361,9 @@ class UserController extends Controller
     public function updatePass(Request $request)
     {
         $request->validate([
-            'oldpassword' => 'required|min:6|max:255',
+            'old_password' => 'required|min:6|max:255',
 
-            'password' => 'required|min:6|max:255|confirmed'
+            'new_password' => 'required|min:6|max:255'
 
         ]);
 
@@ -370,7 +372,7 @@ class UserController extends Controller
         // GET USERS 
         $user = $request->user();
 
-        if (!Hash::check($request->oldpassword, $user->password)) {
+        if (!Hash::check($request->old_password, $user->password)) {
             return response([
                 'message' => 'Incorrect Old Password',
                 'status' => 'fail',
@@ -378,13 +380,17 @@ class UserController extends Controller
             ], 401);
         }
 
-        // $passupdate =  $user->update([
-        //     'password' => Hash::make($request->password)
-        // ]);
+        $passupdate =  $user->update([
+            'password' => Hash::make($request->new_password)
+        ]);
 
-        // if ($passupdate) {
-           
-        // }
+        if (!$passupdate) {
+            return response([
+                'message' => 'error while updating password',
+                'status' => 'fail',
+                'statusCode' => '401'
+            ], 401);
+        }
 
 
         return response([
@@ -395,6 +401,44 @@ class UserController extends Controller
     }
 
 
+    //verify USER START HERE  (nimc card or voters card)
+
+    public function verify(Request $request)
+    {
+
+        $request->validate([
+            'img_url' => 'required|image|mimes:jpg,bmp,png,jpeg'
+        ]);
+
+        $user = $request->user();
+        if ($request->hasFile('img_url')) {
+            if ($user->nimc_url) {
+                $old_path = $user->nimc_url;
+                if (File::exists($old_path)) {
+                    File::delete($old_path);
+                }
+            }
+            $image_name = 'nimc-image-' . time() . '-' . rand(1000, 9999) . '-' . $user->name . '-' . rand(1000, 9999) . time() . rand(1000, 9999) . '.' . $request->img_url->extension();
+            $image_name = str_replace(' ', '-', $image_name);
+            $request->img_url->move(public_path('/uploads/nimc/images'), $image_name);
+            $image_name = url('uploads/nimc/images/' . $image_name);
+        } else {
+            $image_name = $user->nimc_url;
+        }
+
+
+        $user->update([
+            'nimc_url' => $image_name,
+            'verification' => 'PROCESS'
+
+        ]);
+
+        return response([
+            'message' => 'Verification Details Successfully Sent. Kindly Wait For Admin Verification',
+            'status' => 'success',
+            'statusCode' => '200'
+        ], 200);
+    }
 
     //LOGOUT USER START HERE 
 
